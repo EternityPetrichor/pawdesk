@@ -1,0 +1,46 @@
+{
+  "dailyTemplates": [
+    {
+      "id": "daily-interact",
+      "title": "互动 3 次",
+      "type": "interaction",
+      "target": 3,
+      "reward": {
+        "mood": 5,
+        "energy": 0,
+        "hunger": -2,
+        "intimacy": 1
+      }
+    },
+    {
+      "id": "daily-pet",
+      "title": "抚摸 2 次",
+      "type": "petting",
+      "target": 2,
+      "reward": {
+        "mood": 4,
+        "energy": 0,
+        "hunger": -1,
+        "intimacy": 3
+      }
+    },
+    {
+      "id": "daily-todo",
+      "title": "完成 1 个 Todo",
+      "type": "todoComplete",
+      "target": 1,
+      "reward": {
+        "mood": 4,
+        "energy": 2,
+        "hunger": -6,
+        "intimacy": 2
+      }
+    }
+  ],
+  "todoReward": {
+    "mood": 3,
+    "energy": 1,
+    "hunger": -4,
+    "intimacy": 1
+  }
+}

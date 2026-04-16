@@ -1,0 +1,51 @@
+{
+  "defaults": {
+    "name": "小爪",
+    "mood": 72,
+    "energy": 78,
+    "hunger": 42,
+    "intimacy": 18,
+    "position": {
+      "x": 0,
+      "y": 0
+    }
+  },
+  "ratesPerHour": {
+    "moodDecay": 4,
+    "energyDecay": 6,
+    "hungerIncrease": 8,
+    "intimacyDecay": 0.5
+  },
+  "interactions": {
+    "wake": {
+      "mood": 1,
+      "energy": 0,
+      "hunger": 0,
+      "intimacy": 0
+    },
+    "poke": {
+      "mood": 4,
+      "energy": -1,
+      "hunger": 1,
+      "intimacy": 0.5
+    },
+    "pet": {
+      "mood": 6,
+      "energy": -1,
+      "hunger": 1,
+      "intimacy": 1
+    },
+    "drag": {
+      "mood": -1,
+      "energy": -2,
+      "hunger": 1,
+      "intimacy": 0
+    }
+  },
+  "thresholds": {
+    "happyMood": 78,
+    "lowEnergy": 28,
+    "highHunger": 72,
+    "bondedIntimacy": 60
+  }
+}

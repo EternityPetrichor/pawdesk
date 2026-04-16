@@ -1,0 +1,11 @@
+node_modules
+dist
+out
+.vscode
+.DS_Store
+*.log
+历史问题截图
+当前问题截图
+/.idea/
+/产品文档知识库/
+/.claude/

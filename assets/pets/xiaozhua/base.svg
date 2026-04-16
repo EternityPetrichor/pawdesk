@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" fill="none">
+  <ellipse cx="110" cy="188" rx="52" ry="10" fill="#0f172a" fill-opacity="0.16"/>
+  <path d="M69 74L82 32L106 68" fill="#F2AE4B"/>
+  <path d="M151 74L138 32L114 68" fill="#F2AE4B"/>
+  <rect x="48" y="60" width="124" height="110" rx="52" fill="#F6BC62"/>
+  <ellipse cx="88" cy="106" rx="16" ry="16" fill="#FFF8EB"/>
+  <ellipse cx="132" cy="106" rx="16" ry="16" fill="#FFF8EB"/>
+  <g id="eyes-js">
+    <circle cx="88" cy="106" r="6" fill="#1F2937"/>
+    <circle cx="132" cy="106" r="6" fill="#1F2937"/>
+  </g>
+  <path d="M102 126C104.667 121.333 107.333 119 110 119C112.667 119 115.333 121.333 118 126" stroke="#92400E" stroke-width="5" stroke-linecap="round"/>
+  <path d="M97 140C102.333 146 106.667 149 110 149C113.333 149 117.667 146 123 140" stroke="#7C2D12" stroke-width="4" stroke-linecap="round"/>
+  <path id="tail-js" d="M171 143C188 139 196 145 200 154" stroke="#D97706" stroke-width="14" stroke-linecap="round"/>
+</svg>
