@@ -1,7 +1,9 @@
+import type { ModelConfigSnapshot } from './model-config'
+
 export type PetAnimationState = 'idle' | 'happy' | 'petting' | 'dragging'
 export type PetInteractionType = 'wake' | 'poke' | 'pet' | 'drag'
 export type DailyTaskType = 'interaction' | 'petting' | 'todoComplete'
-export type WorkTool = 'claude-code'
+export type WorkTool = 'claude-code' | 'codex' | 'cursor' | 'gemini'
 export type TodoScope = 'today' | 'longTerm'
 export type WorkEventType =
   | 'tool.started'
@@ -9,6 +11,7 @@ export type WorkEventType =
   | 'tool.file_edit'
   | 'tool.error'
   | 'tool.complete'
+  | 'tool.waiting_permission'
   | 'tool.idle'
 export type ChatScenario =
   | 'greeting'
@@ -145,11 +148,20 @@ export interface WorkEventPayload {
   timestamp: string
 }
 
+export interface WorkModeSummary {
+  errorCount: number
+  recentFiles: string[]
+  lastCompletedAt: string | null
+  lastActiveAt: string | null
+}
+
 export interface WorkModeState {
   enabled: boolean
   tool: WorkTool
   status: WorkEventType | 'disabled'
   lastEvent: WorkEventPayload | null
+  connection: 'idle' | 'listening' | 'error'
+  summary: WorkModeSummary
   server: {
     port: number | null
   }
@@ -165,5 +177,6 @@ export interface PetSnapshot {
   derived: PetDerivedState
   tasks: TaskState
   chat: ChatState
+  modelConfig: ModelConfigSnapshot
   workMode: WorkModeState
 }

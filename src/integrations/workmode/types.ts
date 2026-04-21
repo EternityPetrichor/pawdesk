@@ -1,27 +1,9 @@
-export type WorkTool = 'claude-code'
+import type { WorkTool } from '../../shared/types/pet'
 
-export type WorkEventType =
-  | 'tool.started'
-  | 'tool.thinking'
-  | 'tool.file_edit'
-  | 'tool.error'
-  | 'tool.complete'
-  | 'tool.idle'
-
-export interface WorkEventPayload {
+export interface RawWorkEventInput {
   tool: WorkTool
-  type: WorkEventType
-  message: string
+  eventName: string
+  message?: string
   filePath?: string
   timestamp: string
-}
-
-export interface WorkModeState {
-  enabled: boolean
-  tool: WorkTool
-  status: WorkEventType | 'disabled'
-  lastEvent: WorkEventPayload | null
-  server: {
-    port: number | null
-  }
 }

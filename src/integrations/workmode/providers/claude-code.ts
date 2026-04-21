@@ -1,4 +1,4 @@
-import type { WorkEventPayload } from '../types'
+import type { WorkEventPayload } from '../../../shared/types/pet'
 
 export function normalizeClaudeCodeEvent(payload: Partial<WorkEventPayload>): WorkEventPayload {
   return {

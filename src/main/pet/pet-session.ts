@@ -1,7 +1,7 @@
 import { BrowserWindow } from 'electron'
 import { appendPetMessage, appendUserMessage, clearBubble } from '../../domain/chat/chat-history'
 import { buildChatContext } from '../../domain/chat/context-builder'
-import { createPetReply } from '../../domain/chat/chat-service'
+import { createPetReply, createTemplateReply } from '../../domain/chat/chat-service'
 import type { ChatScenario } from '../../domain/chat/types'
 import type { PetInteractionType, PetProfile } from '../../domain/life/types'
 import { applyLifeInteraction, applyTaskReward, createSnapshot, hydrateProfile, updateProfilePosition } from '../../domain/life/pet-state-machine'
@@ -9,11 +9,14 @@ import { markDailyRewardApplied, updateDailyProgress } from '../../domain/tasks/
 import { getCompletedUnclaimedTasks, getTaskReward, getTodoReward } from '../../domain/tasks/rewards'
 import { addTodo, removeTodo, toggleTodo } from '../../domain/tasks/todo-store'
 import { WorkModeSession } from '../../integrations/workmode/session'
+import type { ModelConfig } from '../../shared/types/model-config'
 import type { PetPosition, PetSnapshot, TodoScope, WorkEventPayload, WorkModeState, WorkTool } from '../../shared/types/pet'
+import { getDefaultModelConfig, loadModelConfig, saveModelConfig, toModelConfigSnapshot } from '../persistence/model-config-store'
 import { loadProfile, saveProfile } from '../persistence/profile-store'
 
 export class PetSession {
   private profile: PetProfile | null = null
+  private modelConfig: ModelConfig = getDefaultModelConfig()
   private readonly snapshotListeners = new Set<(snapshot: PetSnapshot) => void>()
   private readonly animationStateListeners = new Set<(state: PetSnapshot['derived']['animationState']) => void>()
   private readonly workModeSession = new WorkModeSession()
@@ -24,6 +27,8 @@ export class PetSession {
     const storedProfile = await loadProfile()
     this.profile = hydrateProfile(storedProfile)
     this.profile.position = position
+    this.modelConfig = await loadModelConfig()
+    this.profile.modelConfig = toModelConfigSnapshot(this.modelConfig)
     await saveProfile(this.profile)
   }
 
@@ -34,6 +39,7 @@ export class PetSession {
 
     return {
       ...createSnapshot(this.profile),
+      modelConfig: toModelConfigSnapshot(this.modelConfig),
       workMode: this.workModeSession.getState()
     }
   }
@@ -159,7 +165,21 @@ export class PetSession {
       ...this.profile,
       chat: appendUserMessage(this.profile.chat, trimmed)
     }
-    this.addPetMessage('userMessage', trimmed)
+
+    const reply = await createPetReply(
+      {
+        scenario: 'userMessage',
+        context: buildChatContext(this.getSnapshot()),
+        userText: trimmed
+      },
+      this.modelConfig
+    )
+
+    this.profile = {
+      ...this.profile,
+      chat: appendPetMessage(this.profile.chat, 'userMessage', reply.text),
+      modelConfig: toModelConfigSnapshot(this.modelConfig)
+    }
 
     await saveProfile(this.profile)
     this.broadcastSnapshot()
@@ -180,6 +200,22 @@ export class PetSession {
     await saveProfile(this.profile)
     this.broadcastSnapshot()
 
+    return this.getSnapshot()
+  }
+
+  async saveModelConfig(config: ModelConfig): Promise<PetSnapshot> {
+    if (!this.profile) {
+      throw new Error('Pet session is not initialized')
+    }
+
+    this.modelConfig = config
+    this.profile = {
+      ...this.profile,
+      modelConfig: toModelConfigSnapshot(config)
+    }
+    await saveModelConfig(config)
+    await saveProfile(this.profile)
+    this.broadcastSnapshot()
     return this.getSnapshot()
   }
 
@@ -264,7 +300,7 @@ export class PetSession {
       return
     }
 
-    const text = createPetReply(scenario, buildChatContext(this.getSnapshot()), userText)
+    const text = createTemplateReply(scenario, buildChatContext(this.getSnapshot()), userText)
     this.profile = {
       ...this.profile,
       chat: appendPetMessage(this.profile.chat, scenario, text)

@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { AppInfo } from '../shared/types/app'
+import type { ModelConfig } from '../shared/types/model-config'
 import type { PetAnimationState, PetPointerMovePayload, PetSnapshot, TodoScope, WorkEventPayload, WorkTool } from '../shared/types/pet'
 
 const appInfo: AppInfo = {
@@ -18,6 +19,7 @@ contextBridge.exposeInMainWorld('pawdesk', {
     removeTodo: (todoId: string) => ipcRenderer.invoke('pet:remove-todo', todoId),
     sendChat: (text: string) => ipcRenderer.invoke('pet:send-chat', text),
     clearBubble: () => ipcRenderer.invoke('pet:clear-bubble'),
+    saveModelConfig: (config: ModelConfig) => ipcRenderer.invoke('pet:save-model-config', config),
     toggleWorkMode: (enabled: boolean) => ipcRenderer.invoke('pet:toggle-work-mode', enabled),
     setWorkTool: (tool: WorkTool) => ipcRenderer.invoke('pet:set-work-tool', tool),
     sendWorkEvent: (payload: WorkEventPayload) => ipcRenderer.invoke('pet:send-work-event', payload),

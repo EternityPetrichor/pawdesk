@@ -50,11 +50,26 @@ const browserFallbackSnapshot: PetSnapshot = {
       lastIdleRemarkAt: null
     }
   },
+  modelConfig: {
+    enabled: true,
+    mode: 'local-template',
+    provider: 'local-template',
+    model: 'template-v1',
+    baseUrl: '',
+    hasApiKey: false
+  },
   workMode: {
     enabled: false,
     tool: 'claude-code',
     status: 'disabled',
     lastEvent: null,
+    connection: 'idle',
+    summary: {
+      errorCount: 0,
+      recentFiles: [],
+      lastCompletedAt: null,
+      lastActiveAt: null
+    },
     server: {
       port: null
     }

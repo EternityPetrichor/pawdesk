@@ -1,9 +1,9 @@
 import { createServer, type Server } from 'node:http'
-import { mapWorkEvent } from './event-mapper'
-import type { WorkEventPayload } from './types'
+import { mapRawWorkEvent } from './event-mapper'
+import type { RawWorkEventInput } from './types'
 
 export async function startWorkModeServer(
-  onEvent: (event: WorkEventPayload) => void,
+  onEvent: (event: ReturnType<typeof mapRawWorkEvent>) => void,
   onStateRequest: () => unknown
 ): Promise<{ server: Server; port: number }> {
   const server = createServer((request, response) => {
@@ -22,8 +22,8 @@ export async function startWorkModeServer(
 
       request.on('end', () => {
         try {
-          const parsed = JSON.parse(body) as WorkEventPayload
-          onEvent(mapWorkEvent(parsed))
+          const parsed = JSON.parse(body) as RawWorkEventInput
+          onEvent(mapRawWorkEvent(parsed))
           response.writeHead(200, { 'content-type': 'application/json' })
           response.end(JSON.stringify({ ok: true }))
         } catch {

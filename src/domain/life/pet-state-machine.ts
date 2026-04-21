@@ -21,7 +21,8 @@ export function createSnapshot(profile: PetProfile): PetSnapshot {
       ...profile.tasks,
       summary: createTaskSummary(profile.tasks)
     },
-    chat: profile.chat
+    chat: profile.chat,
+    modelConfig: profile.modelConfig
   }
 }
 

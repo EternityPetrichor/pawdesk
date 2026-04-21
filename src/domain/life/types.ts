@@ -1,4 +1,5 @@
 import type { ChatState, PetAnimationState, PetPosition, TaskState, WorkModeState } from '../../shared/types/pet'
+import type { ModelConfigSnapshot } from '../../shared/types/model-config'
 
 export type PetInteractionType = 'wake' | 'poke' | 'pet' | 'drag'
 
@@ -21,6 +22,7 @@ export interface PetProfile {
   position: PetPosition
   tasks: TaskState
   chat: ChatState
+  modelConfig?: ModelConfigSnapshot
 }
 
 export interface LifeInteractionDelta {
@@ -72,5 +74,6 @@ export interface PetSnapshot {
   derived: PetDerivedState
   tasks: TaskState
   chat: ChatState
+  modelConfig?: ModelConfigSnapshot
   workMode?: WorkModeState
 }

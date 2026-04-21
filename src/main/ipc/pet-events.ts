@@ -1,5 +1,6 @@
 import { ipcMain, screen } from 'electron'
-import type { PetDragStartPayload, PetPointerMovePayload, TodoScope } from '../../shared/types/pet'
+import type { ModelConfig } from '../../shared/types/model-config'
+import type { PetDragStartPayload, PetPointerMovePayload, TodoScope, WorkEventPayload, WorkTool } from '../../shared/types/pet'
 import type { PetSession } from '../pet/pet-session'
 
 interface DragState {
@@ -112,6 +113,22 @@ export function registerPetEvents(petWindow: Electron.BrowserWindow, petSession:
 
   ipcMain.handle('pet:clear-bubble', () => {
     return petSession.clearCurrentBubble()
+  })
+
+  ipcMain.handle('pet:save-model-config', (_event, config: ModelConfig) => {
+    return petSession.saveModelConfig(config)
+  })
+
+  ipcMain.handle('pet:toggle-work-mode', (_event, enabled: boolean) => {
+    return petSession.toggleWorkMode(enabled)
+  })
+
+  ipcMain.handle('pet:set-work-tool', (_event, tool: WorkTool) => {
+    return petSession.setWorkTool(tool)
+  })
+
+  ipcMain.handle('pet:send-work-event', (_event, payload: WorkEventPayload) => {
+    return petSession.applyWorkEvent(payload)
   })
 
   ipcMain.on('pet:pointer-down', (_event, payload: PetDragStartPayload) => {

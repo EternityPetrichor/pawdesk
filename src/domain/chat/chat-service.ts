@@ -1,6 +1,9 @@
 import { defaultPersonality } from './defaults'
 import { promptTemplates } from './prompt-templates'
 import type { ChatContext, ChatScenario, PetPersonality } from './types'
+import type { ModelConfig } from '../../shared/types/model-config'
+import { createClaudeReply } from './providers/claude'
+import { createLocalTemplateReply } from './providers/local-template'
 
 function pickFavoriteWord(personality: PetPersonality): string {
   return personality.favoriteWords[Math.floor(Math.random() * personality.favoriteWords.length)] ?? ''
@@ -11,7 +14,7 @@ function pickTemplate(scenario: ChatScenario): string {
   return options[Math.floor(Math.random() * options.length)] ?? ''
 }
 
-export function createPetReply(
+export function createTemplateReply(
   scenario: ChatScenario,
   context: ChatContext,
   userText?: string,
@@ -48,4 +51,55 @@ export function createPetReply(
   }
 
   return `${pickTemplate(scenario)}${suffix}`
+}
+
+interface CreatePetReplyInput {
+  scenario: ChatScenario
+  context: ChatContext
+  userText?: string
+}
+
+interface CreatePetReplyOptions {
+  personality?: PetPersonality
+  claudeProvider?: typeof createClaudeReply
+}
+
+interface PetReplyResult {
+  text: string
+  source: 'local-template' | 'claude'
+  fallbackReason?: 'missing-api-key'
+}
+
+export async function createPetReply(
+  input: CreatePetReplyInput,
+  config: ModelConfig,
+  options: CreatePetReplyOptions = {}
+): Promise<PetReplyResult> {
+  const personality = options.personality ?? defaultPersonality
+
+  if (config.mode === 'claude' && config.apiKey.trim()) {
+    const claudeProvider = options.claudeProvider ?? createClaudeReply
+    return {
+      text: await claudeProvider({
+        scenario: input.scenario,
+        context: input.context,
+        userText: input.userText,
+        config
+      }),
+      source: 'claude'
+    }
+  }
+
+  const fallbackReason = config.mode === 'claude' && !config.apiKey.trim() ? 'missing-api-key' : undefined
+
+  return {
+    text: await createLocalTemplateReply({
+      scenario: input.scenario,
+      context: input.context,
+      userText: input.userText,
+      personality
+    }),
+    source: 'local-template',
+    fallbackReason
+  }
 }
