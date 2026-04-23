@@ -6,8 +6,9 @@ import type { PetSession } from '../pet/pet-session'
 interface DragState {
   active: boolean
   dragging: boolean
-  startCursor: { screenX: number; screenY: number; offsetX: number; offsetY: number } | null
-  latestCursor: { screenX: number; screenY: number; offsetX: number; offsetY: number } | null
+  startCursor: { screenX: number; screenY: number } | null
+  grabOffset: { x: number; y: number } | null
+  latestCursor: { screenX: number; screenY: number } | null
   latestPosition: { x: number; y: number } | null
   pollTimer: NodeJS.Timeout | null
 }
@@ -17,6 +18,7 @@ export function registerPetEvents(petWindow: Electron.BrowserWindow, petSession:
     active: false,
     dragging: false,
     startCursor: null,
+    grabOffset: null,
     latestCursor: null,
     latestPosition: null,
     pollTimer: null
@@ -40,16 +42,14 @@ export function registerPetEvents(petWindow: Electron.BrowserWindow, petSession:
   }
 
   const updateDragPosition = () => {
-    if (!dragState.active || !dragState.startCursor) {
+    if (!dragState.active || !dragState.startCursor || !dragState.grabOffset) {
       return
     }
 
     const cursorPoint = screen.getCursorScreenPoint()
     dragState.latestCursor = {
       screenX: cursorPoint.x,
-      screenY: cursorPoint.y,
-      offsetX: dragState.startCursor.offsetX,
-      offsetY: dragState.startCursor.offsetY
+      screenY: cursorPoint.y
     }
 
     const cursor = dragState.latestCursor
@@ -61,8 +61,8 @@ export function registerPetEvents(petWindow: Electron.BrowserWindow, petSession:
     }
 
     const nextPosition = {
-      x: Math.round(cursor.screenX - dragState.startCursor.offsetX),
-      y: Math.round(cursor.screenY - dragState.startCursor.offsetY)
+      x: Math.round(cursor.screenX - dragState.grabOffset.x),
+      y: Math.round(cursor.screenY - dragState.grabOffset.y)
     }
 
     if (
@@ -134,15 +134,22 @@ export function registerPetEvents(petWindow: Electron.BrowserWindow, petSession:
   ipcMain.on('pet:pointer-down', (_event, payload: PetDragStartPayload) => {
     dragState.active = true
     dragState.dragging = false
+
+    const cursorPoint = screen.getCursorScreenPoint()
+    const [x, y] = petWindow.getPosition()
+
     dragState.startCursor = {
       screenX: Number(payload.screenX),
-      screenY: Number(payload.screenY),
-      offsetX: Number(payload.offsetX),
-      offsetY: Number(payload.offsetY)
+      screenY: Number(payload.screenY)
     }
-    dragState.latestCursor = dragState.startCursor
-
-    const [x, y] = petWindow.getPosition()
+    dragState.grabOffset = {
+      x: cursorPoint.x - x,
+      y: cursorPoint.y - y
+    }
+    dragState.latestCursor = {
+      screenX: cursorPoint.x,
+      screenY: cursorPoint.y
+    }
     dragState.latestPosition = { x: Number(x), y: Number(y) }
     startDragPolling()
   })
@@ -169,6 +176,7 @@ export function registerPetEvents(petWindow: Electron.BrowserWindow, petSession:
     dragState.active = false
     dragState.dragging = false
     dragState.startCursor = null
+    dragState.grabOffset = null
     dragState.latestCursor = null
     dragState.latestPosition = null
 

@@ -44,8 +44,6 @@ export interface PetPointerMovePayload {
 export interface PetDragStartPayload {
   screenX: number
   screenY: number
-  offsetX: number
-  offsetY: number
 }
 
 export interface PetLifeStats {

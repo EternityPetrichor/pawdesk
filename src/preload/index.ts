@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { AppInfo } from '../shared/types/app'
 import type { ModelConfig } from '../shared/types/model-config'
-import type { PetAnimationState, PetPointerMovePayload, PetSnapshot, TodoScope, WorkEventPayload, WorkTool } from '../shared/types/pet'
+import type { PetAnimationState, PetDragStartPayload, PetPointerMovePayload, PetSnapshot, TodoScope, WorkEventPayload, WorkTool } from '../shared/types/pet'
 
 const appInfo: AppInfo = {
   name: 'PawDesk',
@@ -23,7 +23,7 @@ contextBridge.exposeInMainWorld('pawdesk', {
     toggleWorkMode: (enabled: boolean) => ipcRenderer.invoke('pet:toggle-work-mode', enabled),
     setWorkTool: (tool: WorkTool) => ipcRenderer.invoke('pet:set-work-tool', tool),
     sendWorkEvent: (payload: WorkEventPayload) => ipcRenderer.invoke('pet:send-work-event', payload),
-    pointerDown: (payload: { screenX: number; screenY: number; offsetX: number; offsetY: number }) => {
+    pointerDown: (payload: PetDragStartPayload) => {
       ipcRenderer.send('pet:pointer-down', payload)
     },
     pointerMove: () => {
