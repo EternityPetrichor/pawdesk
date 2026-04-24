@@ -51,9 +51,7 @@ export function PetCanvas() {
     event.currentTarget.setPointerCapture(event.pointerId)
     window.pawdesk.pet.pointerDown({
       screenX: event.screenX,
-      screenY: event.screenY,
-      offsetX: event.clientX,
-      offsetY: event.clientY
+      screenY: event.screenY
     })
   }
 
