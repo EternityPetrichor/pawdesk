@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import type { ModelConfig } from '../../../shared/types/model-config'
+import { getModelProviderPreset, modelProviderPresets } from '../../../domain/chat/providers/presets'
+import type { ModelProviderId } from '../../../shared/types/model-config'
 import type { PetSnapshot } from '../../../shared/types/pet'
 import { ChatPanel } from '../pet/ChatPanel'
 import { TaskPanel } from '../pet/TaskPanel'
@@ -123,23 +124,54 @@ function ProfilePanel({ snapshot }: { snapshot: PetSnapshot | null }) {
 
 function ModelPanel({ snapshot }: { snapshot: PetSnapshot | null }) {
   const modelConfig = snapshot?.modelConfig
-  const [mode, setMode] = useState<ModelConfig['mode']>(modelConfig?.mode ?? 'local-template')
-  const [model, setModel] = useState(modelConfig?.model ?? 'template-v1')
-  const [baseUrl, setBaseUrl] = useState(modelConfig?.baseUrl ?? '')
+  const [provider, setProvider] = useState<ModelProviderId>(modelConfig?.provider ?? 'local-template')
+  const preset = getModelProviderPreset(provider)
+  const [model, setModel] = useState(modelConfig?.model ?? preset.defaultModel)
+  const [baseUrl, setBaseUrl] = useState(modelConfig?.baseUrl ?? preset.defaultBaseUrl)
   const [apiKey, setApiKey] = useState('')
+  const isRemote = provider !== 'local-template'
+
+  const handleProviderChange = (nextProvider: ModelProviderId) => {
+    const nextPreset = getModelProviderPreset(nextProvider)
+    setProvider(nextProvider)
+    setModel(nextPreset.defaultModel)
+    setBaseUrl(nextPreset.defaultBaseUrl)
+    setApiKey('')
+  }
 
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     await window.pawdesk.pet.saveModelConfig({
       enabled: true,
-      mode,
-      provider: mode,
-      model: mode === 'local-template' ? 'template-v1' : model.trim() || 'claude-sonnet-4-6',
-      baseUrl: mode === 'local-template' ? '' : baseUrl.trim() || 'https://api.anthropic.com',
+      mode: isRemote ? 'remote' : 'local-template',
+      provider,
+      protocol: preset.protocol,
+      model: isRemote ? model.trim() : 'template-v1',
+      baseUrl: isRemote ? baseUrl.trim() : '',
       apiKey: apiKey.trim()
     })
     setApiKey('')
   }
+
+  const handleClearApiKey = async () => {
+    if (!isRemote) {
+      return
+    }
+
+    await window.pawdesk.pet.saveModelConfig({
+      enabled: true,
+      mode: 'remote',
+      provider,
+      protocol: preset.protocol,
+      model: model.trim(),
+      baseUrl: baseUrl.trim(),
+      apiKey: '',
+      clearApiKey: true
+    })
+    setApiKey('')
+  }
+
+  const statusText = !isRemote ? '本地模式' : modelConfig?.provider === provider && modelConfig.hasApiKey ? `${preset.label} 已配置` : '缺少 Key'
 
   return (
     <section className="panel-card model-card">
@@ -148,31 +180,37 @@ function ModelPanel({ snapshot }: { snapshot: PetSnapshot | null }) {
           <span className="panel-kicker">Model gateway</span>
           <h2>模型配置</h2>
         </div>
-        <span className="panel-status-pill">{modelConfig?.mode === 'claude' ? (modelConfig.hasApiKey ? 'Claude 已配置' : '缺少 Key') : '本地模式'}</span>
+        <span className="panel-status-pill">{statusText}</span>
       </div>
       <p className="panel-muted">模型只负责小爪“怎么说”，生命值、任务和工作状态仍由本地规则驱动。</p>
       <form className="settings-panel" onSubmit={handleSave}>
         <label className="panel-field">
-          <span>当前模式</span>
-          <select value={mode} onChange={(event) => setMode(event.target.value as ModelConfig['mode'])}>
-            <option value="local-template">本地模板回复</option>
-            <option value="claude">Claude</option>
+          <span>模型提供商</span>
+          <select value={provider} onChange={(event) => handleProviderChange(event.target.value as ModelProviderId)}>
+            {modelProviderPresets.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </label>
-        {mode === 'claude' ? (
+        {isRemote ? (
           <>
             <label className="panel-field">
               <span>模型</span>
-              <input value={model} onChange={(event) => setModel(event.target.value)} placeholder="claude-sonnet-4-6" />
+              <input value={model} onChange={(event) => setModel(event.target.value)} placeholder={preset.defaultModel || '请输入模型名称'} />
             </label>
             <label className="panel-field">
               <span>Base URL</span>
-              <input value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="https://api.anthropic.com" />
+              <input value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder={preset.defaultBaseUrl || 'https://example.com/v1'} />
             </label>
             <label className="panel-field">
               <span>API Key</span>
-              <input value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder={modelConfig?.hasApiKey ? '已保存，留空会清除' : '输入 API Key'} type="password" />
+              <input value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder={modelConfig?.hasApiKey && modelConfig.provider === provider ? '已保存，留空保留' : '输入 API Key'} type="password" />
             </label>
+            <button type="button" onClick={handleClearApiKey} disabled={modelConfig?.provider !== provider || !modelConfig.hasApiKey}>
+              清除已保存 Key
+            </button>
           </>
         ) : null}
         <button type="submit">保存模型配置</button>

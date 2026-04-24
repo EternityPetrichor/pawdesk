@@ -1,5 +1,5 @@
 import { ipcMain, screen } from 'electron'
-import type { ModelConfig } from '../../shared/types/model-config'
+import type { ModelConfigInput } from '../../shared/types/model-config'
 import type { PetDragStartPayload, PetPointerMovePayload, TodoScope, WorkEventPayload, WorkTool } from '../../shared/types/pet'
 import type { PetSession } from '../pet/pet-session'
 
@@ -115,7 +115,7 @@ export function registerPetEvents(petWindow: Electron.BrowserWindow, petSession:
     return petSession.clearCurrentBubble()
   })
 
-  ipcMain.handle('pet:save-model-config', (_event, config: ModelConfig) => {
+  ipcMain.handle('pet:save-model-config', (_event, config: ModelConfigInput) => {
     return petSession.saveModelConfig(config)
   })
 

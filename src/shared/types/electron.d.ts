@@ -1,5 +1,5 @@
 import type { AppInfo } from '../shared/types/app'
-import type { ModelConfig } from '../shared/types/model-config'
+import type { ModelConfigInput } from '../shared/types/model-config'
 import type { PetAnimationState, PetDragStartPayload, PetPointerMovePayload, PetSnapshot, TodoScope, WorkEventPayload, WorkTool } from '../shared/types/pet'
 
 declare global {
@@ -14,7 +14,7 @@ declare global {
         removeTodo: (todoId: string) => Promise<PetSnapshot>
         sendChat: (text: string) => Promise<PetSnapshot>
         clearBubble: () => Promise<PetSnapshot>
-        saveModelConfig: (config: ModelConfig) => Promise<PetSnapshot>
+        saveModelConfig: (config: ModelConfigInput) => Promise<PetSnapshot>
         toggleWorkMode: (enabled: boolean) => Promise<PetSnapshot>
         setWorkTool: (tool: WorkTool) => Promise<PetSnapshot>
         sendWorkEvent: (payload: WorkEventPayload) => Promise<PetSnapshot>

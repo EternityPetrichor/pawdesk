@@ -54,6 +54,7 @@ const browserFallbackSnapshot: PetSnapshot = {
     enabled: true,
     mode: 'local-template',
     provider: 'local-template',
+    protocol: 'local-template',
     model: 'template-v1',
     baseUrl: '',
     hasApiKey: false

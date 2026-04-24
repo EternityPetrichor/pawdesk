@@ -9,7 +9,7 @@ import { markDailyRewardApplied, updateDailyProgress } from '../../domain/tasks/
 import { getCompletedUnclaimedTasks, getTaskReward, getTodoReward } from '../../domain/tasks/rewards'
 import { addTodo, removeTodo, toggleTodo } from '../../domain/tasks/todo-store'
 import { WorkModeSession } from '../../integrations/workmode/session'
-import type { ModelConfig } from '../../shared/types/model-config'
+import type { ModelConfig, ModelConfigInput } from '../../shared/types/model-config'
 import type { PetPosition, PetSnapshot, TodoScope, WorkEventPayload, WorkModeState, WorkTool } from '../../shared/types/pet'
 import { getDefaultModelConfig, loadModelConfig, saveModelConfig, toModelConfigSnapshot } from '../persistence/model-config-store'
 import { loadProfile, saveProfile } from '../persistence/profile-store'
@@ -203,17 +203,17 @@ export class PetSession {
     return this.getSnapshot()
   }
 
-  async saveModelConfig(config: ModelConfig): Promise<PetSnapshot> {
+  async saveModelConfig(config: ModelConfigInput): Promise<PetSnapshot> {
     if (!this.profile) {
       throw new Error('Pet session is not initialized')
     }
 
-    this.modelConfig = config
+    const nextConfig = await saveModelConfig(this.modelConfig, config)
+    this.modelConfig = nextConfig
     this.profile = {
       ...this.profile,
-      modelConfig: toModelConfigSnapshot(config)
+      modelConfig: toModelConfigSnapshot(nextConfig)
     }
-    await saveModelConfig(config)
     await saveProfile(this.profile)
     this.broadcastSnapshot()
     return this.getSnapshot()

@@ -1,9 +1,10 @@
 import { defaultPersonality } from './defaults'
 import { promptTemplates } from './prompt-templates'
 import type { ChatContext, ChatScenario, PetPersonality } from './types'
-import type { ModelConfig } from '../../shared/types/model-config'
-import { createClaudeReply } from './providers/claude'
+import type { ModelConfig, ModelProviderId, ModelProtocol } from '../../shared/types/model-config'
 import { createLocalTemplateReply } from './providers/local-template'
+import { getRemoteProviderAdapter, remoteProviderAdapters } from './providers/registry'
+import type { ModelProviderAdapter } from './providers/types'
 
 function pickFavoriteWord(personality: PetPersonality): string {
   return personality.favoriteWords[Math.floor(Math.random() * personality.favoriteWords.length)] ?? ''
@@ -61,13 +62,14 @@ interface CreatePetReplyInput {
 
 interface CreatePetReplyOptions {
   personality?: PetPersonality
-  claudeProvider?: typeof createClaudeReply
+  providerAdapters?: Partial<Record<ModelProtocol, ModelProviderAdapter>>
+  fetchFn?: typeof fetch
 }
 
 interface PetReplyResult {
   text: string
-  source: 'local-template' | 'claude'
-  fallbackReason?: 'missing-api-key'
+  source: ModelProviderId
+  fallbackReason?: 'missing-api-key' | 'unsupported-provider' | 'provider-error'
 }
 
 export async function createPetReply(
@@ -77,29 +79,45 @@ export async function createPetReply(
 ): Promise<PetReplyResult> {
   const personality = options.personality ?? defaultPersonality
 
-  if (config.mode === 'claude' && config.apiKey.trim()) {
-    const claudeProvider = options.claudeProvider ?? createClaudeReply
+  async function createFallback(fallbackReason?: PetReplyResult['fallbackReason']): Promise<PetReplyResult> {
     return {
-      text: await claudeProvider({
+      text: await createLocalTemplateReply({
         scenario: input.scenario,
         context: input.context,
         userText: input.userText,
-        config
+        personality
       }),
-      source: 'claude'
+      source: 'local-template',
+      fallbackReason
     }
   }
 
-  const fallbackReason = config.mode === 'claude' && !config.apiKey.trim() ? 'missing-api-key' : undefined
+  if (!config.enabled || config.protocol === 'local-template' || config.provider === 'local-template') {
+    return createFallback()
+  }
 
-  return {
-    text: await createLocalTemplateReply({
-      scenario: input.scenario,
-      context: input.context,
-      userText: input.userText,
-      personality
-    }),
-    source: 'local-template',
-    fallbackReason
+  if (!config.apiKey.trim()) {
+    return createFallback('missing-api-key')
+  }
+
+  const adapter = options.providerAdapters?.[config.protocol] ?? remoteProviderAdapters[config.protocol] ?? getRemoteProviderAdapter(config.protocol)
+
+  if (!adapter) {
+    return createFallback('unsupported-provider')
+  }
+
+  try {
+    return {
+      text: await adapter.createReply({
+        scenario: input.scenario,
+        context: input.context,
+        userText: input.userText,
+        config,
+        fetchFn: options.fetchFn
+      }),
+      source: config.provider
+    }
+  } catch {
+    return createFallback('provider-error')
   }
 }
