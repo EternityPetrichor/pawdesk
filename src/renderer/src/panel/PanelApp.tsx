@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getModelProviderPreset, modelProviderPresets } from '../../../domain/chat/providers/presets'
-import type { ModelProviderId } from '../../../shared/types/model-config'
+import type { ModelProtocol, ModelProviderId } from '../../../shared/types/model-config'
 import type { PetSnapshot } from '../../../shared/types/pet'
 import { ChatPanel } from '../pet/ChatPanel'
 import { TaskPanel } from '../pet/TaskPanel'
@@ -85,6 +85,14 @@ function getInitialPanel(): PanelKey {
   return 'tasks'
 }
 
+const providerProtocols: ModelProtocol[] = ['openai-chat', 'anthropic-messages']
+
+const protocolLabels: Record<ModelProtocol, string> = {
+  'local-template': '本地模板',
+  'openai-chat': 'OpenAI 兼容',
+  'anthropic-messages': 'Anthropic Messages'
+}
+
 function ProfilePanel({ snapshot }: { snapshot: PetSnapshot | null }) {
   const stats = [
     { label: '心情', value: snapshot ? Math.round(snapshot.stats.mood) : '--', hint: snapshot?.derived.moodLabel ?? '等待同步' },
@@ -128,14 +136,27 @@ function ModelPanel({ snapshot }: { snapshot: PetSnapshot | null }) {
   const preset = getModelProviderPreset(provider)
   const [model, setModel] = useState(modelConfig?.model ?? preset.defaultModel)
   const [baseUrl, setBaseUrl] = useState(modelConfig?.baseUrl ?? preset.defaultBaseUrl)
+  const [protocol, setProtocol] = useState<ModelProtocol>(modelConfig?.protocol ?? preset.protocol)
   const [apiKey, setApiKey] = useState('')
   const isRemote = provider !== 'local-template'
+
+  useEffect(() => {
+    if (!modelConfig) {
+      return
+    }
+
+    setProvider(modelConfig.provider)
+    setModel(modelConfig.model)
+    setBaseUrl(modelConfig.baseUrl)
+    setProtocol(modelConfig.protocol)
+  }, [modelConfig])
 
   const handleProviderChange = (nextProvider: ModelProviderId) => {
     const nextPreset = getModelProviderPreset(nextProvider)
     setProvider(nextProvider)
     setModel(nextPreset.defaultModel)
     setBaseUrl(nextPreset.defaultBaseUrl)
+    setProtocol(nextPreset.protocol)
     setApiKey('')
   }
 
@@ -145,7 +166,7 @@ function ModelPanel({ snapshot }: { snapshot: PetSnapshot | null }) {
       enabled: true,
       mode: isRemote ? 'remote' : 'local-template',
       provider,
-      protocol: preset.protocol,
+      protocol: isRemote ? protocol : 'local-template',
       model: isRemote ? model.trim() : 'template-v1',
       baseUrl: isRemote ? baseUrl.trim() : '',
       apiKey: apiKey.trim()
@@ -162,7 +183,7 @@ function ModelPanel({ snapshot }: { snapshot: PetSnapshot | null }) {
       enabled: true,
       mode: 'remote',
       provider,
-      protocol: preset.protocol,
+      protocol,
       model: model.trim(),
       baseUrl: baseUrl.trim(),
       apiKey: '',
@@ -196,6 +217,16 @@ function ModelPanel({ snapshot }: { snapshot: PetSnapshot | null }) {
         </label>
         {isRemote ? (
           <>
+            <label className="panel-field">
+              <span>协议</span>
+              <select value={protocol} onChange={(event) => setProtocol(event.target.value as ModelProtocol)}>
+                {providerProtocols.map((option) => (
+                  <option key={option} value={option}>
+                    {protocolLabels[option]}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="panel-field">
               <span>模型</span>
               <input value={model} onChange={(event) => setModel(event.target.value)} placeholder={preset.defaultModel || '请输入模型名称'} />

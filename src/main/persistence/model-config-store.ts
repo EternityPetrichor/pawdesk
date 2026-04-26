@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { join } from 'node:path'
-import type { ModelConfig, ModelConfigInput, ModelConfigSnapshot, ModelMode, ModelProviderId } from '../../shared/types/model-config'
+import type { ModelConfig, ModelConfigInput, ModelConfigSnapshot, ModelMode, ModelProtocol, ModelProviderId } from '../../shared/types/model-config'
 import { getModelProviderPreset } from '../../domain/chat/providers/presets'
 import { readJsonFile, writeJsonFile } from './store'
 
@@ -37,6 +37,11 @@ function readProvider(value: Record<string, unknown>): ModelProviderId {
   }
 
   return providerIds.includes(provider as ModelProviderId) ? (provider as ModelProviderId) : 'local-template'
+}
+
+function readProtocol(value: Record<string, unknown>, fallback: ModelProtocol): ModelProtocol {
+  const protocol = readString(value['protocol'])
+  return protocol === 'openai-chat' || protocol === 'anthropic-messages' || protocol === 'local-template' ? protocol : fallback
 }
 
 function normalizeBaseUrl(value: string): string {
@@ -77,11 +82,13 @@ export function normalizeModelConfig(value: unknown): ModelConfig {
 
   const mode: ModelMode = readString(value['mode']) === 'claude' ? 'claude' : 'remote'
 
+  const protocol = readProtocol(value, preset.protocol)
+
   return {
     enabled: value['enabled'] !== false,
     mode,
     provider,
-    protocol: preset.protocol,
+    protocol,
     model,
     baseUrl: candidateBaseUrl,
     apiKey: readString(value['apiKey'])

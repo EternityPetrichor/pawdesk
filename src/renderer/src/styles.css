@@ -638,7 +638,8 @@ textarea {
 .panel-card select,
 .todo-form input,
 .chat-form input,
-.workmode-card select {
+.workmode-card select,
+.panel-card input {
   width: 100%;
   min-width: 0;
   border: 1px solid var(--panel-card-border);
@@ -650,10 +651,28 @@ textarea {
   user-select: text;
 }
 
+.panel-card select option,
+.workmode-card select option {
+  background: #2a211c;
+  color: #fff8f0;
+}
+
+.panel-card select option:checked,
+.workmode-card select option:checked {
+  background: var(--panel-accent);
+  color: #ffffff;
+}
+
+.panel-card select option:disabled,
+.workmode-card select option:disabled {
+  color: rgba(255, 248, 240, 0.44);
+}
+
 .panel-card select:focus,
 .todo-form input:focus,
 .chat-form input:focus,
-.workmode-card select:focus {
+.workmode-card select:focus,
+.panel-card input:focus {
   border-color: var(--panel-accent);
   box-shadow: 0 0 0 3px var(--panel-accent-soft);
 }

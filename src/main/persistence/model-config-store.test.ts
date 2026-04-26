@@ -34,6 +34,19 @@ test('fills built-in provider defaults', () => {
   assert.equal(config.baseUrl, 'https://generativelanguage.googleapis.com/v1beta/openai')
 })
 
+test('preserves explicit protocol override for built-in provider', () => {
+  const config = normalizeModelConfig({
+    provider: 'gemini',
+    protocol: 'anthropic-messages',
+    model: 'claude-opus-4-7',
+    baseUrl: 'https://example.com',
+    apiKey: 'key'
+  })
+
+  assert.equal(config.provider, 'gemini')
+  assert.equal(config.protocol, 'anthropic-messages')
+})
+
 test('preserves existing key when unchanged remote config submits empty key', () => {
   const current = normalizeModelConfig({ provider: 'openai', apiKey: 'saved-key' })
   const next = mergeModelConfigForSave(current, { ...current, apiKey: '' })

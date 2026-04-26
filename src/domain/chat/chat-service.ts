@@ -117,7 +117,8 @@ export async function createPetReply(
       }),
       source: config.provider
     }
-  } catch {
+  } catch (error) {
+    console.warn('[PawDesk] Model provider request failed, using local template fallback:', error)
     return createFallback('provider-error')
   }
 }
