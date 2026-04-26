@@ -8,6 +8,7 @@ interface ChatPanelProps {
 
 export function ChatPanel({ snapshot }: ChatPanelProps) {
   const [message, setMessage] = useState('')
+  const [isSending, setIsSending] = useState(false)
   const { sendChat } = useChatActions()
   const messages = snapshot?.chat.messages.slice(-5) ?? []
 
@@ -15,12 +16,17 @@ export function ChatPanel({ snapshot }: ChatPanelProps) {
     event.preventDefault()
 
     const nextMessage = message.trim()
-    if (!nextMessage) {
+    if (!nextMessage || isSending) {
       return
     }
 
-    await sendChat(nextMessage)
     setMessage('')
+    setIsSending(true)
+    try {
+      await sendChat(nextMessage)
+    } finally {
+      setIsSending(false)
+    }
   }
 
   return (
@@ -61,9 +67,10 @@ export function ChatPanel({ snapshot }: ChatPanelProps) {
         <input
           value={message}
           onChange={(event) => setMessage(event.target.value)}
-          placeholder="和小爪说句话..."
+          placeholder={isSending ? '小爪正在回复...' : '和小爪说句话...'}
+          disabled={isSending}
         />
-        <button type="submit">发送</button>
+        <button type="submit" disabled={isSending}>{isSending ? '回复中...' : '发送'}</button>
       </form>
     </section>
   )

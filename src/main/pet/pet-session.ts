@@ -11,12 +11,22 @@ import { addTodo, removeTodo, toggleTodo } from '../../domain/tasks/todo-store'
 import { WorkModeSession } from '../../integrations/workmode/session'
 import type { ModelConfig, ModelConfigInput } from '../../shared/types/model-config'
 import type { PetPosition, PetSnapshot, TodoScope, WorkEventPayload, WorkModeState, WorkTool } from '../../shared/types/pet'
-import { getDefaultModelConfig, loadModelConfig, saveModelConfig, toModelConfigSnapshot } from '../persistence/model-config-store'
+import {
+  activateModelConfigInCollection,
+  getActiveModelConfig,
+  getDefaultModelConfig,
+  loadModelConfigCollection,
+  saveModelConfig,
+  saveModelConfigCollection,
+  toModelConfigCollectionSnapshot,
+  toModelConfigSnapshot
+} from '../persistence/model-config-store'
 import { loadProfile, saveProfile } from '../persistence/profile-store'
 
 export class PetSession {
   private profile: PetProfile | null = null
   private modelConfig: ModelConfig = getDefaultModelConfig()
+  private modelConfigCollection = toModelConfigCollectionSnapshot({ activeId: 'default', items: [{ id: 'default', name: '本地模板回复', config: getDefaultModelConfig() }] })
   private readonly snapshotListeners = new Set<(snapshot: PetSnapshot) => void>()
   private readonly animationStateListeners = new Set<(state: PetSnapshot['derived']['animationState']) => void>()
   private readonly workModeSession = new WorkModeSession()
@@ -27,7 +37,9 @@ export class PetSession {
     const storedProfile = await loadProfile()
     this.profile = hydrateProfile(storedProfile)
     this.profile.position = position
-    this.modelConfig = await loadModelConfig()
+    const storedModelConfigs = await loadModelConfigCollection()
+    this.modelConfig = getActiveModelConfig(storedModelConfigs)
+    this.modelConfigCollection = toModelConfigCollectionSnapshot(storedModelConfigs)
     this.profile.modelConfig = toModelConfigSnapshot(this.modelConfig)
     await saveProfile(this.profile)
   }
@@ -40,6 +52,7 @@ export class PetSession {
     return {
       ...createSnapshot(this.profile),
       modelConfig: toModelConfigSnapshot(this.modelConfig),
+      modelConfigs: this.modelConfigCollection,
       workMode: this.workModeSession.getState()
     }
   }
@@ -209,10 +222,30 @@ export class PetSession {
     }
 
     const nextConfig = await saveModelConfig(this.modelConfig, config)
+    const nextCollection = await loadModelConfigCollection()
     this.modelConfig = nextConfig
+    this.modelConfigCollection = toModelConfigCollectionSnapshot(nextCollection)
     this.profile = {
       ...this.profile,
       modelConfig: toModelConfigSnapshot(nextConfig)
+    }
+    await saveProfile(this.profile)
+    this.broadcastSnapshot()
+    return this.getSnapshot()
+  }
+
+  async activateModelConfig(id: string): Promise<PetSnapshot> {
+    if (!this.profile) {
+      throw new Error('Pet session is not initialized')
+    }
+
+    const nextCollection = activateModelConfigInCollection(await loadModelConfigCollection(), id)
+    await saveModelConfigCollection(nextCollection)
+    this.modelConfig = getActiveModelConfig(nextCollection)
+    this.modelConfigCollection = toModelConfigCollectionSnapshot(nextCollection)
+    this.profile = {
+      ...this.profile,
+      modelConfig: toModelConfigSnapshot(this.modelConfig)
     }
     await saveProfile(this.profile)
     this.broadcastSnapshot()

@@ -23,6 +23,8 @@ export interface ModelConfig {
 }
 
 export interface ModelConfigInput extends Partial<ModelConfig> {
+  id?: string
+  name?: string
   clearApiKey?: boolean
 }
 
@@ -34,6 +36,17 @@ export interface ModelConfigSnapshot {
   model: string
   baseUrl: string
   hasApiKey: boolean
+}
+
+export interface SavedModelConfigSnapshot extends ModelConfigSnapshot {
+  id: string
+  name: string
+  active: boolean
+}
+
+export interface ModelConfigCollectionSnapshot {
+  activeId: string
+  items: SavedModelConfigSnapshot[]
 }
 
 export interface ModelProviderPreset {

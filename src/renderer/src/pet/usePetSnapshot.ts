@@ -59,6 +59,23 @@ const browserFallbackSnapshot: PetSnapshot = {
     baseUrl: '',
     hasApiKey: false
   },
+  modelConfigs: {
+    activeId: 'default',
+    items: [
+      {
+        id: 'default',
+        name: '本地模板回复',
+        active: true,
+        enabled: true,
+        mode: 'local-template',
+        provider: 'local-template',
+        protocol: 'local-template',
+        model: 'template-v1',
+        baseUrl: '',
+        hasApiKey: false
+      }
+    ]
+  },
   workMode: {
     enabled: false,
     tool: 'claude-code',

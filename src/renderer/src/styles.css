@@ -195,14 +195,36 @@ textarea {
   left: 50%;
   top: 8px;
   transform: translateX(-50%);
-  max-width: 152px;
-  padding: 7px 9px;
-  border-radius: 14px;
+  width: max-content;
+  max-width: min(216px, calc(100% - 24px));
+  max-height: 116px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.96);
   color: #111827;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
   pointer-events: none;
   z-index: 20;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(37, 99, 235, 0.32) transparent;
+}
+
+.chat-bubble::-webkit-scrollbar {
+  width: 4px;
+}
+
+.chat-bubble::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-bubble::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.26);
+}
+
+.chat-bubble::-webkit-scrollbar-thumb:hover {
+  background: rgba(37, 99, 235, 0.42);
 }
 
 .chat-bubble-tag {
@@ -218,6 +240,7 @@ textarea {
   margin: 0;
   font-size: 11px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .panel-shell {

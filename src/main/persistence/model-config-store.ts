@@ -1,8 +1,28 @@
 import { app } from 'electron'
 import { join } from 'node:path'
-import type { ModelConfig, ModelConfigInput, ModelConfigSnapshot, ModelMode, ModelProtocol, ModelProviderId } from '../../shared/types/model-config'
+import type {
+  ModelConfig,
+  ModelConfigCollectionSnapshot,
+  ModelConfigInput,
+  ModelConfigSnapshot,
+  ModelMode,
+  ModelProtocol,
+  ModelProviderId,
+  SavedModelConfigSnapshot
+} from '../../shared/types/model-config'
 import { getModelProviderPreset } from '../../domain/chat/providers/presets'
 import { readJsonFile, writeJsonFile } from './store'
+
+interface SavedModelConfig {
+  id: string
+  name: string
+  config: ModelConfig
+}
+
+interface ModelConfigCollection {
+  activeId: string
+  items: SavedModelConfig[]
+}
 
 const defaultModelConfig: ModelConfig = {
   enabled: true,
@@ -113,14 +133,98 @@ export function mergeModelConfigForSave(current: ModelConfig, input: ModelConfig
   return next
 }
 
-export async function loadModelConfig(): Promise<ModelConfig> {
-  return normalizeModelConfig(await readJsonFile<unknown>(getModelConfigPath()))
+function createConfigId(): string {
+  return `model-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-export async function saveModelConfig(current: ModelConfig, input: ModelConfigInput): Promise<ModelConfig> {
-  const nextConfig = mergeModelConfigForSave(current, input)
-  await writeJsonFile(getModelConfigPath(), nextConfig)
-  return nextConfig
+function createConfigName(config: ModelConfig): string {
+  return config.provider === 'local-template' ? '本地模板回复' : `${config.provider} / ${config.protocol} / ${config.model}`
+}
+
+function readCollection(value: unknown): ModelConfigCollection {
+  if (isRecord(value) && Array.isArray(value['items'])) {
+    const items = value['items']
+      .map((item): SavedModelConfig | null => {
+        if (!isRecord(item)) {
+          return null
+        }
+
+        const id = readString(item['id']) || createConfigId()
+        const name = readString(item['name'])
+        const config = normalizeModelConfig(item['config'])
+        return { id, name: name || createConfigName(config), config }
+      })
+      .filter((item): item is SavedModelConfig => item !== null)
+
+    if (items.length > 0) {
+      const activeId = readString(value['activeId'])
+      return {
+        activeId: items.some((item) => item.id === activeId) ? activeId : items[0].id,
+        items
+      }
+    }
+  }
+
+  const config = normalizeModelConfig(value)
+  return {
+    activeId: 'default',
+    items: [{ id: 'default', name: createConfigName(config), config }]
+  }
+}
+
+export function getActiveModelConfig(collection: ModelConfigCollection): ModelConfig {
+  return collection.items.find((item) => item.id === collection.activeId)?.config ?? collection.items[0]?.config ?? { ...defaultModelConfig }
+}
+
+export function toModelConfigCollectionSnapshot(collection: ModelConfigCollection): ModelConfigCollectionSnapshot {
+  return {
+    activeId: collection.activeId,
+    items: collection.items.map((item): SavedModelConfigSnapshot => ({
+      id: item.id,
+      name: item.name,
+      active: item.id === collection.activeId,
+      ...toModelConfigSnapshot(item.config)
+    }))
+  }
+}
+
+export function saveModelConfigToCollection(collection: ModelConfigCollection, input: ModelConfigInput): ModelConfigCollection {
+  const currentItem = collection.items.find((item) => item.id === (input.id ?? collection.activeId))
+  const currentConfig = currentItem?.config ?? getActiveModelConfig(collection)
+  const nextConfig = mergeModelConfigForSave(currentConfig, input)
+  const nextId = input.id && currentItem ? input.id : createConfigId()
+  const nextName = readString(input.name) || currentItem?.name || createConfigName(nextConfig)
+  const nextItem = { id: nextId, name: nextName, config: nextConfig }
+  const replaced = collection.items.some((item) => item.id === nextId)
+  const items = replaced ? collection.items.map((item) => (item.id === nextId ? nextItem : item)) : [...collection.items, nextItem]
+
+  return {
+    activeId: nextId,
+    items
+  }
+}
+
+export function activateModelConfigInCollection(collection: ModelConfigCollection, id: string): ModelConfigCollection {
+  return collection.items.some((item) => item.id === id) ? { ...collection, activeId: id } : collection
+}
+
+export async function loadModelConfigCollection(): Promise<ModelConfigCollection> {
+  return readCollection(await readJsonFile<unknown>(getModelConfigPath()))
+}
+
+export async function saveModelConfigCollection(collection: ModelConfigCollection): Promise<void> {
+  await writeJsonFile(getModelConfigPath(), collection)
+}
+
+export async function loadModelConfig(): Promise<ModelConfig> {
+  return getActiveModelConfig(await loadModelConfigCollection())
+}
+
+export async function saveModelConfig(_current: ModelConfig, input: ModelConfigInput): Promise<ModelConfig> {
+  const collection = await loadModelConfigCollection()
+  const nextCollection = saveModelConfigToCollection(collection, input)
+  await saveModelConfigCollection(nextCollection)
+  return getActiveModelConfig(nextCollection)
 }
 
 export function toModelConfigSnapshot(config: ModelConfig): ModelConfigSnapshot {

@@ -1,4 +1,5 @@
 import { buildProviderSystemPrompt, buildProviderUserPrompt } from './prompt'
+import { sanitizeProviderReply } from './sanitize'
 import type { ProviderReplyOptions } from './types'
 
 interface AnthropicMessagesResponse {
@@ -33,9 +34,15 @@ export async function createAnthropicMessagesReply(options: ProviderReplyOptions
   const data = (await response.json()) as AnthropicMessagesResponse
   const text = data.content?.find((block) => block.type === 'text' && typeof block.text === 'string')?.text
 
-  if (typeof text !== 'string' || !text.trim()) {
+  if (typeof text !== 'string') {
     throw new Error('Anthropic provider returned empty reply')
   }
 
-  return text.trim()
+  const sanitizedText = sanitizeProviderReply(text)
+
+  if (!sanitizedText) {
+    throw new Error('Anthropic provider returned empty reply')
+  }
+
+  return sanitizedText
 }

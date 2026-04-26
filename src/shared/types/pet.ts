@@ -1,4 +1,4 @@
-import type { ModelConfigSnapshot } from './model-config'
+import type { ModelConfigCollectionSnapshot, ModelConfigSnapshot } from './model-config'
 
 export type PetAnimationState = 'idle' | 'happy' | 'petting' | 'dragging'
 export type PetInteractionType = 'wake' | 'poke' | 'pet' | 'drag'
@@ -176,5 +176,6 @@ export interface PetSnapshot {
   tasks: TaskState
   chat: ChatState
   modelConfig: ModelConfigSnapshot
+  modelConfigs: ModelConfigCollectionSnapshot
   workMode: WorkModeState
 }

@@ -132,6 +132,9 @@ function ProfilePanel({ snapshot }: { snapshot: PetSnapshot | null }) {
 
 function ModelPanel({ snapshot }: { snapshot: PetSnapshot | null }) {
   const modelConfig = snapshot?.modelConfig
+  const savedConfigs = snapshot?.modelConfigs.items ?? []
+  const [selectedConfigId, setSelectedConfigId] = useState(modelConfig ? snapshot?.modelConfigs.activeId ?? 'default' : 'default')
+  const [configName, setConfigName] = useState(savedConfigs.find((item) => item.active)?.name ?? '')
   const [provider, setProvider] = useState<ModelProviderId>(modelConfig?.provider ?? 'local-template')
   const preset = getModelProviderPreset(provider)
   const [model, setModel] = useState(modelConfig?.model ?? preset.defaultModel)
@@ -149,7 +152,24 @@ function ModelPanel({ snapshot }: { snapshot: PetSnapshot | null }) {
     setModel(modelConfig.model)
     setBaseUrl(modelConfig.baseUrl)
     setProtocol(modelConfig.protocol)
-  }, [modelConfig])
+    setSelectedConfigId(snapshot?.modelConfigs.activeId ?? 'default')
+    setConfigName(savedConfigs.find((item) => item.active)?.name ?? '')
+  }, [modelConfig, savedConfigs, snapshot?.modelConfigs.activeId])
+
+  const handleSavedConfigChange = (id: string) => {
+    const saved = savedConfigs.find((item) => item.id === id)
+    if (!saved) {
+      return
+    }
+
+    setSelectedConfigId(saved.id)
+    setConfigName(saved.name)
+    setProvider(saved.provider)
+    setModel(saved.model)
+    setBaseUrl(saved.baseUrl)
+    setProtocol(saved.protocol)
+    setApiKey('')
+  }
 
   const handleProviderChange = (nextProvider: ModelProviderId) => {
     const nextPreset = getModelProviderPreset(nextProvider)
@@ -163,6 +183,8 @@ function ModelPanel({ snapshot }: { snapshot: PetSnapshot | null }) {
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     await window.pawdesk.pet.saveModelConfig({
+      id: selectedConfigId === 'new' ? undefined : selectedConfigId,
+      name: configName.trim(),
       enabled: true,
       mode: isRemote ? 'remote' : 'local-template',
       provider,
@@ -180,6 +202,8 @@ function ModelPanel({ snapshot }: { snapshot: PetSnapshot | null }) {
     }
 
     await window.pawdesk.pet.saveModelConfig({
+      id: selectedConfigId,
+      name: configName.trim(),
       enabled: true,
       mode: 'remote',
       provider,
@@ -190,6 +214,25 @@ function ModelPanel({ snapshot }: { snapshot: PetSnapshot | null }) {
       clearApiKey: true
     })
     setApiKey('')
+  }
+
+  const handleCreateConfig = () => {
+    const nextPreset = getModelProviderPreset('openai')
+    setSelectedConfigId('new')
+    setConfigName('')
+    setProvider('openai')
+    setModel(nextPreset.defaultModel)
+    setBaseUrl(nextPreset.defaultBaseUrl)
+    setProtocol(nextPreset.protocol)
+    setApiKey('')
+  }
+
+  const handleActivateConfig = async () => {
+    if (selectedConfigId === 'new') {
+      return
+    }
+
+    await window.pawdesk.pet.activateModelConfig(selectedConfigId)
   }
 
   const statusText = !isRemote ? '本地模式' : modelConfig?.provider === provider && modelConfig.hasApiKey ? `${preset.label} 已配置` : '缺少 Key'
@@ -205,6 +248,27 @@ function ModelPanel({ snapshot }: { snapshot: PetSnapshot | null }) {
       </div>
       <p className="panel-muted">模型只负责小爪“怎么说”，生命值、任务和工作状态仍由本地规则驱动。</p>
       <form className="settings-panel" onSubmit={handleSave}>
+        <label className="panel-field">
+          <span>已保存配置</span>
+          <select value={selectedConfigId} onChange={(event) => handleSavedConfigChange(event.target.value)}>
+            {selectedConfigId === 'new' ? <option value="new">新配置（未保存）</option> : null}
+            {savedConfigs.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.active ? '当前：' : ''}{item.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="panel-field">
+          <span>配置名称</span>
+          <input value={configName} onChange={(event) => setConfigName(event.target.value)} placeholder="例如：Gemini 工作号" />
+        </label>
+        <button type="button" onClick={handleCreateConfig}>
+          新建配置
+        </button>
+        <button type="button" onClick={handleActivateConfig} disabled={selectedConfigId === 'new' || selectedConfigId === snapshot?.modelConfigs.activeId}>
+          启用选中配置
+        </button>
         <label className="panel-field">
           <span>模型提供商</span>
           <select value={provider} onChange={(event) => handleProviderChange(event.target.value as ModelProviderId)}>

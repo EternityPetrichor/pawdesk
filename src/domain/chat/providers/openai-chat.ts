@@ -1,4 +1,5 @@
 import { buildProviderSystemPrompt, buildProviderUserPrompt } from './prompt'
+import { sanitizeProviderReply } from './sanitize'
 import type { ProviderReplyOptions } from './types'
 
 interface OpenAIChatResponse {
@@ -34,9 +35,15 @@ export async function createOpenAIChatReply(options: ProviderReplyOptions): Prom
   const data = (await response.json()) as OpenAIChatResponse
   const text = data.choices?.[0]?.message?.content
 
-  if (typeof text !== 'string' || !text.trim()) {
+  if (typeof text !== 'string') {
     throw new Error('OpenAI-compatible provider returned empty reply')
   }
 
-  return text.trim()
+  const sanitizedText = sanitizeProviderReply(text)
+
+  if (!sanitizedText) {
+    throw new Error('OpenAI-compatible provider returned empty reply')
+  }
+
+  return sanitizedText
 }

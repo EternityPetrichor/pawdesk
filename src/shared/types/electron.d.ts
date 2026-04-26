@@ -15,6 +15,7 @@ declare global {
         sendChat: (text: string) => Promise<PetSnapshot>
         clearBubble: () => Promise<PetSnapshot>
         saveModelConfig: (config: ModelConfigInput) => Promise<PetSnapshot>
+        activateModelConfig: (id: string) => Promise<PetSnapshot>
         toggleWorkMode: (enabled: boolean) => Promise<PetSnapshot>
         setWorkTool: (tool: WorkTool) => Promise<PetSnapshot>
         sendWorkEvent: (payload: WorkEventPayload) => Promise<PetSnapshot>
