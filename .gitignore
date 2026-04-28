@@ -10,3 +10,4 @@ out
 /产品文档知识库/
 /.claude/
 /.worktrees/
+tsconfig.node.tsbuildinfo
