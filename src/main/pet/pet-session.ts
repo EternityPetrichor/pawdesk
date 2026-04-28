@@ -3,6 +3,7 @@ import { appendPetMessage, appendUserMessage, clearBubble } from '../../domain/c
 import { buildChatContext } from '../../domain/chat/context-builder'
 import { createPetReply, createTemplateReply } from '../../domain/chat/chat-service'
 import type { ChatScenario } from '../../domain/chat/types'
+import { createDefaultPetBehaviorSettings, normalizePetBehaviorSettings } from '../../domain/life/settings'
 import type { PetInteractionType, PetProfile } from '../../domain/life/types'
 import { applyLifeInteraction, applyTaskReward, createSnapshot, hydrateProfile, updateProfilePosition } from '../../domain/life/pet-state-machine'
 import { markDailyRewardApplied, updateDailyProgress } from '../../domain/tasks/daily-tasks'
@@ -27,6 +28,10 @@ export class PetSession {
   private profile: PetProfile | null = null
   private modelConfig: ModelConfig = getDefaultModelConfig()
   private modelConfigCollection = toModelConfigCollectionSnapshot({ activeId: 'default', items: [{ id: 'default', name: '本地模板回复', config: getDefaultModelConfig() }] })
+  private bubbleClearTimer: NodeJS.Timeout | null = null
+  private idleSpeechTimer: NodeJS.Timeout | null = null
+  private lastUserChatAt: number | null = null
+  private readonly idleSpeechLines = ['我在这陪着你呀', '要不要和我说句话', '别太累啦，我还在看着你', '想清一个 Todo 吗，我陪你']
   private readonly snapshotListeners = new Set<(snapshot: PetSnapshot) => void>()
   private readonly animationStateListeners = new Set<(state: PetSnapshot['derived']['animationState']) => void>()
   private readonly workModeSession = new WorkModeSession()
@@ -37,11 +42,14 @@ export class PetSession {
     const storedProfile = await loadProfile()
     this.profile = hydrateProfile(storedProfile)
     this.profile.position = position
+    this.profile.behavior = normalizePetBehaviorSettings(this.profile.behavior)
     const storedModelConfigs = await loadModelConfigCollection()
     this.modelConfig = getActiveModelConfig(storedModelConfigs)
     this.modelConfigCollection = toModelConfigCollectionSnapshot(storedModelConfigs)
     this.profile.modelConfig = toModelConfigSnapshot(this.modelConfig)
     await saveProfile(this.profile)
+    this.scheduleIdleSpeech()
+    this.scheduleBubbleClear()
   }
 
   getSnapshot(): PetSnapshot {
@@ -174,6 +182,8 @@ export class PetSession {
       return this.getSnapshot()
     }
 
+    this.lastUserChatAt = Date.now()
+    this.clearIdleSpeechTimer()
     this.profile = {
       ...this.profile,
       chat: appendUserMessage(this.profile.chat, trimmed)
@@ -195,6 +205,8 @@ export class PetSession {
     }
 
     await saveProfile(this.profile)
+    this.scheduleBubbleClear()
+    this.scheduleIdleSpeech()
     this.broadcastSnapshot()
 
     return this.getSnapshot()
@@ -210,7 +222,26 @@ export class PetSession {
       chat: clearBubble(this.profile.chat)
     }
 
+    this.clearBubbleClearTimer()
     await saveProfile(this.profile)
+    this.broadcastSnapshot()
+
+    return this.getSnapshot()
+  }
+
+  async saveBehaviorSettings(settings: unknown): Promise<PetSnapshot> {
+    if (!this.profile) {
+      throw new Error('Pet session is not initialized')
+    }
+
+    this.profile = {
+      ...this.profile,
+      behavior: normalizePetBehaviorSettings(settings)
+    }
+
+    await saveProfile(this.profile)
+    this.scheduleIdleSpeech()
+    this.scheduleBubbleClear()
     this.broadcastSnapshot()
 
     return this.getSnapshot()
@@ -338,6 +369,79 @@ export class PetSession {
       ...this.profile,
       chat: appendPetMessage(this.profile.chat, scenario, text)
     }
+    this.scheduleBubbleClear()
+  }
+
+  private scheduleBubbleClear(): void {
+    this.clearBubbleClearTimer()
+
+    if (!this.profile?.chat.currentBubble) {
+      return
+    }
+
+    const durationSeconds = this.profile.behavior?.bubbleDurationSeconds ?? createDefaultPetBehaviorSettings().bubbleDurationSeconds
+    this.bubbleClearTimer = setTimeout(() => {
+      if (!this.profile?.chat.currentBubble) {
+        return
+      }
+
+      this.profile = {
+        ...this.profile,
+        chat: clearBubble(this.profile.chat)
+      }
+      void saveProfile(this.profile)
+      this.broadcastSnapshot()
+    }, durationSeconds * 1000)
+  }
+
+  private clearBubbleClearTimer(): void {
+    if (!this.bubbleClearTimer) {
+      return
+    }
+
+    clearTimeout(this.bubbleClearTimer)
+    this.bubbleClearTimer = null
+  }
+
+  private scheduleIdleSpeech(): void {
+    this.clearIdleSpeechTimer()
+
+    if (!this.profile) {
+      return
+    }
+
+    const intervalSeconds = this.profile.behavior?.idleSpeechIntervalSeconds ?? createDefaultPetBehaviorSettings().idleSpeechIntervalSeconds
+    this.idleSpeechTimer = setTimeout(() => {
+      if (!this.profile) {
+        return
+      }
+
+      const lastMessage = this.profile.chat.messages.at(-1)
+      const lastUserAt = lastMessage?.role === 'user' ? Date.parse(lastMessage.createdAt) : this.lastUserChatAt
+      if (lastUserAt && Date.now() - lastUserAt < intervalSeconds * 1000) {
+        this.scheduleIdleSpeech()
+        return
+      }
+
+      const text = this.idleSpeechLines[Math.floor(Math.random() * this.idleSpeechLines.length)] ?? '我在这里陪你'
+      this.profile = {
+        ...this.profile,
+        chat: appendPetMessage(this.profile.chat, 'idleRemark', text)
+      }
+      void saveProfile(this.profile)
+      this.scheduleBubbleClear()
+      this.broadcastSnapshot()
+      this.scheduleIdleSpeech()
+    }, intervalSeconds * 1000)
+  }
+
+  private clearIdleSpeechTimer(): void {
+    if (!this.idleSpeechTimer) {
+      return
+    }
+
+    clearTimeout(this.idleSpeechTimer)
+    this.idleSpeechTimer = null
   }
 
   private applyCompletedDailyRewards(): void {

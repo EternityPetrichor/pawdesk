@@ -119,6 +119,10 @@ export function registerPetEvents(petWindow: Electron.BrowserWindow, petSession:
     return petSession.saveModelConfig(config)
   })
 
+  ipcMain.handle('pet:save-behavior-settings', (_event, settings: unknown) => {
+    return petSession.saveBehaviorSettings(settings)
+  })
+
   ipcMain.handle('pet:activate-model-config', (_event, id: string) => {
     return petSession.activateModelConfig(id)
   })

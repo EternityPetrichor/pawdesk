@@ -315,11 +315,32 @@ function ModelPanel({ snapshot }: { snapshot: PetSnapshot | null }) {
 }
 
 interface SettingsPanelProps {
+  snapshot: PetSnapshot | null
   theme: PanelThemeId
   setTheme: (theme: PanelThemeId) => void
 }
 
-function SettingsPanel({ theme, setTheme }: SettingsPanelProps) {
+function SettingsPanel({ snapshot, theme, setTheme }: SettingsPanelProps) {
+  const [bubbleDurationSeconds, setBubbleDurationSeconds] = useState(snapshot?.behavior.bubbleDurationSeconds ?? 10)
+  const [idleSpeechIntervalSeconds, setIdleSpeechIntervalSeconds] = useState(snapshot?.behavior.idleSpeechIntervalSeconds ?? 30)
+
+  useEffect(() => {
+    if (!snapshot) {
+      return
+    }
+
+    setBubbleDurationSeconds(snapshot.behavior.bubbleDurationSeconds)
+    setIdleSpeechIntervalSeconds(snapshot.behavior.idleSpeechIntervalSeconds)
+  }, [snapshot])
+
+  const handleSaveBehaviorSettings = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    await window.pawdesk.pet.saveBehaviorSettings({
+      bubbleDurationSeconds,
+      idleSpeechIntervalSeconds
+    })
+  }
+
   return (
     <section className="settings-panel">
       <div className="panel-card">
@@ -351,22 +372,37 @@ function SettingsPanel({ theme, setTheme }: SettingsPanelProps) {
         </div>
       </div>
 
-      <div className="panel-card settings-card-secondary">
+      <form className="panel-card settings-card-secondary" onSubmit={handleSaveBehaviorSettings}>
         <div className="panel-section-header">
           <div>
-            <span className="panel-kicker">Preference</span>
-            <h2>其他设置</h2>
+            <span className="panel-kicker">Behavior</span>
+            <h2>陪伴节奏</h2>
           </div>
+          <span className="panel-status-pill">已启用</span>
         </div>
-        <p className="panel-muted">这里预留桌宠透明度、音效、提醒频率、开机启动等设置项。</p>
+        <p className="panel-muted">调整聊天气泡停留时长，以及小爪在你久未互动时的主动发言频率。</p>
         <label className="panel-field">
-          <span>音效</span>
-          <select defaultValue="on">
-            <option value="on">开启</option>
-            <option value="off">关闭</option>
-          </select>
+          <span>气泡停留时间（秒）</span>
+          <input
+            type="number"
+            min={3}
+            max={120}
+            value={bubbleDurationSeconds}
+            onChange={(event) => setBubbleDurationSeconds(Number(event.target.value))}
+          />
         </label>
-      </div>
+        <label className="panel-field">
+          <span>主动发言间隔（秒）</span>
+          <input
+            type="number"
+            min={5}
+            max={600}
+            value={idleSpeechIntervalSeconds}
+            onChange={(event) => setIdleSpeechIntervalSeconds(Number(event.target.value))}
+          />
+        </label>
+        <button type="submit">保存陪伴设置</button>
+      </form>
     </section>
   )
 }
@@ -436,7 +472,7 @@ export function PanelApp() {
           {activePanel === 'work' ? <WorkModePanel snapshot={snapshot} /> : null}
           {activePanel === 'profile' ? <ProfilePanel snapshot={snapshot} /> : null}
           {activePanel === 'model' ? <ModelPanel snapshot={snapshot} /> : null}
-          {activePanel === 'settings' ? <SettingsPanel theme={theme} setTheme={setTheme} /> : null}
+          {activePanel === 'settings' ? <SettingsPanel snapshot={snapshot} theme={theme} setTheme={setTheme} /> : null}
         </div>
       </section>
     </main>

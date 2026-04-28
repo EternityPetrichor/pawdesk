@@ -5,6 +5,7 @@ import { createDefaultProfile } from './defaults'
 import { derivePetState } from './derived-state'
 import { applyInteraction } from './interaction-reducer'
 import { settleLifeStats } from './life-calculator'
+import { normalizePetBehaviorSettings } from './settings'
 import type { PetInteractionType, PetProfile, PetSnapshot } from './types'
 
 function clamp(value: number): number {
@@ -22,6 +23,7 @@ export function createSnapshot(profile: PetProfile): PetSnapshot {
       summary: createTaskSummary(profile.tasks)
     },
     chat: profile.chat,
+    behavior: profile.behavior,
     modelConfig: profile.modelConfig
   }
 }
@@ -32,7 +34,8 @@ export function hydrateProfile(profile: PetProfile | null, now: Date = new Date(
   return {
     ...baseProfile,
     stats: settleLifeStats(baseProfile.stats, now),
-    tasks: refreshDailyTasks(baseProfile.tasks, now)
+    tasks: refreshDailyTasks(baseProfile.tasks, now),
+    behavior: normalizePetBehaviorSettings(baseProfile.behavior)
   }
 }
 

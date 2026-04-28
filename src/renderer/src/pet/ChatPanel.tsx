@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { PetSnapshot } from '../../../shared/types/pet'
+import type { ChatMessage, PetSnapshot } from '../../../shared/types/pet'
 import { useChatActions } from './useChatActions'
 
 interface ChatPanelProps {
@@ -10,7 +10,7 @@ export function ChatPanel({ snapshot }: ChatPanelProps) {
   const [message, setMessage] = useState('')
   const [isSending, setIsSending] = useState(false)
   const { sendChat } = useChatActions()
-  const messages = snapshot?.chat.messages.slice(-5) ?? []
+  const messages: ChatMessage[] = snapshot?.chat.messages.slice(-5) ?? []
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()

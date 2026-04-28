@@ -138,6 +138,11 @@ export interface ChatState {
   cooldowns: ChatCooldowns
 }
 
+export interface PetBehaviorSettings {
+  bubbleDurationSeconds: number
+  idleSpeechIntervalSeconds: number
+}
+
 export interface WorkEventPayload {
   tool: WorkTool
   type: WorkEventType
@@ -175,6 +180,7 @@ export interface PetSnapshot {
   derived: PetDerivedState
   tasks: TaskState
   chat: ChatState
+  behavior: PetBehaviorSettings
   modelConfig: ModelConfigSnapshot
   modelConfigs: ModelConfigCollectionSnapshot
   workMode: WorkModeState

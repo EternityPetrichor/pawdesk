@@ -50,6 +50,10 @@ const browserFallbackSnapshot: PetSnapshot = {
       lastIdleRemarkAt: null
     }
   },
+  behavior: {
+    bubbleDurationSeconds: 10,
+    idleSpeechIntervalSeconds: 30
+  },
   modelConfig: {
     enabled: true,
     mode: 'local-template',

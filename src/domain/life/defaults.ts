@@ -1,6 +1,7 @@
 import lifeConfigJson from '../../../config/life.json'
 import { createDefaultChatState } from '../chat/defaults'
 import { createDailyTasks, getDateKey } from '../tasks/defaults'
+import { createDefaultPetBehaviorSettings } from './settings'
 import type { LifeConfig, PetProfile } from './types'
 
 export const lifeConfig = lifeConfigJson as LifeConfig
@@ -27,6 +28,7 @@ export function createDefaultProfile(now: Date = new Date()): PetProfile {
       todos: [],
       todoHistory: []
     },
-    chat: createDefaultChatState()
+    chat: createDefaultChatState(),
+    behavior: createDefaultPetBehaviorSettings()
   }
 }

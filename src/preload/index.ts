@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('pawdesk', {
     sendChat: (text: string) => ipcRenderer.invoke('pet:send-chat', text),
     clearBubble: () => ipcRenderer.invoke('pet:clear-bubble'),
     saveModelConfig: (config: ModelConfigInput) => ipcRenderer.invoke('pet:save-model-config', config),
+    saveBehaviorSettings: (settings: unknown) => ipcRenderer.invoke('pet:save-behavior-settings', settings),
     activateModelConfig: (id: string) => ipcRenderer.invoke('pet:activate-model-config', id),
     toggleWorkMode: (enabled: boolean) => ipcRenderer.invoke('pet:toggle-work-mode', enabled),
     setWorkTool: (tool: WorkTool) => ipcRenderer.invoke('pet:set-work-tool', tool),
