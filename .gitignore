@@ -11,3 +11,4 @@ out
 /.claude/
 /.worktrees/
 tsconfig.node.tsbuildinfo
+/docs/
